@@ -257,7 +257,8 @@
     }
     .result-record {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(4rem,15vw,7rem); line-height: 1; letter-spacing: 0.05em;
+      font-size: clamp(2.5rem,12vw,7rem); 
+      line-height: 1; letter-spacing: 0.05em;
     }
     .result-record.perfect { color: var(--green); text-shadow: 0 0 60px rgba(29,185,84,0.5); }
     .result-record.good { color: var(--accent); }
@@ -311,8 +312,51 @@
 .result-player .stat-cell .lab { color: var(--muted); font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.1rem; }
 
 @media (max-width: 600px) {
-  .result-player { grid-template-columns: auto 1fr; }
-  .result-player .stat-row { grid-column: 1 / -1; margin-top: 0.5rem; }
+    .result-player { grid-template-columns: auto 1fr; }
+    .result-player .stat-row { grid-column: 1 / -1; margin-top: 0.5rem; }
+  }
+
+  @media (max-width: 600px) {
+    .result-overlay {
+      padding: 0.5rem;
+    }
+    .result-modal {
+      max-height: 96vh;
+      padding: 1.25rem 1rem;
+    }
+    .result-message {
+      font-size: 0.7rem;
+      margin: 0.5rem 0 0.75rem;
+      line-height: 1.4;
+    }
+    .ovr-display {
+      font-size: 0.65rem;
+      margin-bottom: 0.5rem;
+    }
+    .result-team {
+      gap: 0.4rem;
+      margin-bottom: 0.75rem;
+    }
+    .play-again-btn {
+      padding: 0.7rem 2rem;
+      font-size: 0.75rem;
+    }
+    .result-player {
+      padding: 0.45rem 0.6rem;
+      gap: 0.6rem;
+    }
+    .result-player .badge {
+      width: 32px; height: 32px;
+    }
+    .result-player .badge .initials { font-size: 0.65rem; }
+    .result-player .badge .pos-label { font-size: 0.45rem; }
+    .result-player .name { font-size: 0.7rem; margin-bottom: 0.05rem; }
+    .result-player .meta { font-size: 0.52rem; }
+    .result-player .stat-row {
+      gap: 0.3rem;
+    }
+    .result-player .stat-cell .val { font-size: 0.7rem; }
+    .result-player .stat-cell .lab { font-size: 0.45rem; }
 }
     .ovr-display { font-size: 0.75rem; color: var(--muted); margin-bottom: 1rem; letter-spacing: 0.1em; }
     .ovr-display strong { color: var(--accent); font-size: 1.1rem; }
@@ -861,10 +905,10 @@
         msg.textContent = `Solid squad, but not quite legendary. Do better.`;
       } else if (wins >= 40) {
         record.classList.add('bad');
-        msg.textContent = `Below average. Are we serious.`;
+        msg.textContent = `Below average. Good try.`;
       } else {
         record.classList.add('bad');
-        msg.textContent = `Rough one. Did you even try.`;
+        msg.textContent = `Rough one. Maybe next time?`;
       }
 
       ovrEl.innerHTML = `Team OVR: <strong>${teamOVR.toFixed(1)}</strong>`;
@@ -872,7 +916,7 @@
       teamEl.innerHTML = [...team].sort((a, b) => POS_ORDER.indexOf(a.pos) - POS_ORDER.indexOf(b.pos)).map(({ pos, player }) => {
         const ovr = Math.round(posOVRs[pos]);
         const initials = player.name.split(' ').map(w => w[0]).join('').toUpperCase();
-        const eliteClass = ovr >= 90 ? ' elite' : '';
+        const eliteClass = ovr >= 100 ? ' elite' : '';
         const colors = TEAM_COLORS[player.team] || { primary: '#e8501a', secondary: '#ffffff' };
         const badgeText = getContrastText(colors.primary);
         return `
