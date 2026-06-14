@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPBL – GO 82-0</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@400;600&family=Bebas+Neue&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --card: #1a1a26;
+      --border: #2a2a3d;
+      --accent: #f5c518;
+      --accent2: #e8501a;
+      --green: #1db954;
+      --red: #e83a3a;
+      --text: #e8e8f0;
+      --muted: #7070a0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .scanlines {
+      position: fixed; inset: 0; pointer-events: none; z-index: 999;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    }
+
+    header {
+      text-align: center; padding: 2.5rem 1rem 1.5rem;
+      border-bottom: 2px solid var(--border); position: relative;
+    }
+    header::before {
+      content: ''; position: absolute; bottom: -2px; left: 50%;
+      transform: translateX(-50%); width: 200px; height: 2px;
+      background: var(--accent);
+    }
+    .league-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 8vw, 5rem);
+      letter-spacing: 0.12em; color: var(--accent);
+      text-shadow: 0 0 40px rgba(245,197,24,0.3); line-height: 1;
+    }
+    .subtitle {
+      font-size: 0.75rem; letter-spacing: 0.3em; color: var(--muted);
+      margin-top: 0.4rem; text-transform: uppercase;
+    }
+
+    .game-wrap { max-width: 900px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+
+    /* Loading */
+    #loadingScreen {
+      text-align: center; padding: 4rem 1rem;
+      font-size: 0.85rem; letter-spacing: 0.2em; color: var(--muted);
+    }
+    .loading-bar {
+      width: 200px; height: 3px; background: var(--border);
+      margin: 1rem auto; border-radius: 2px; overflow: hidden;
+    }
+    .loading-fill {
+      height: 100%; background: var(--accent);
+      animation: loadpulse 1.2s ease-in-out infinite;
+    }
+    @keyframes loadpulse { 0%,100%{width:20%} 50%{width:80%} }
+
+    /* Slot machine */
+    .slot-section {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2rem; margin-bottom: 2rem;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .slot-section::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent), var(--accent2));
+    }
+    .spin-label {
+      font-size: 0.7rem; letter-spacing: 0.3em; color: var(--muted);
+      text-transform: uppercase; margin-bottom: 1rem;
+    }
+    .slot-display {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      letter-spacing: 0.05em; color: var(--accent);
+      min-height: 4rem; display: flex; align-items: center;
+      justify-content: center; gap: 0.5rem; transition: opacity 0.15s;
+    }
+    .slot-display.spinning { animation: flicker 0.08s linear infinite; }
+    @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .slot-decade { color: var(--accent2); }
+
+    .spin-btn {
+      margin-top: 1.5rem; background: var(--accent); color: #000;
+      border: none; font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600; font-size: 0.85rem; letter-spacing: 0.15em;
+      text-transform: uppercase; padding: 0.9rem 2.5rem;
+      cursor: pointer; border-radius: 2px; transition: all 0.15s;
+    }
+    .spin-btn:hover { background: #ffd84a; transform: translateY(-1px); }
+    .spin-btn:active { transform: translateY(0); }
+    .spin-btn:disabled { background: var(--muted); cursor: default; transform: none; }
+    .rounds-left { font-size: 0.7rem; color: var(--muted); margin-top: 1rem; letter-spacing: 0.2em; }
+
+    /* Switch buttons */
+    .switch-row {
+      display: flex; gap: 0.75rem; justify-content: center;
+      margin-top: 1rem; flex-wrap: wrap;
+    }
+    .switch-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 0.4rem 0.9rem; cursor: pointer; border-radius: 2px;
+      transition: all 0.15s;
+    }
+    .switch-btn:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
+    .switch-btn:disabled { opacity: 0.3; cursor: default; }
+    .switch-btn.used { opacity: 0.3; cursor: default; text-decoration: line-through; }
+
+    /* Player picker */
+    .picker-section {
+      display: none; background: var(--card);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 1.5rem; margin-bottom: 2rem;
+    }
+    .picker-section.active { display: block; }
+    .picker-header {
+      font-size: 0.7rem; letter-spacing: 0.25em; color: var(--muted);
+      text-transform: uppercase; margin-bottom: 1.2rem;
+    }
+
+    /* Position modal for ambiguous players */
+    .pos-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 500;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .pos-modal-overlay.active { display: flex; }
+    .pos-modal {
+      background: var(--card); border: 1px solid var(--accent);
+      border-radius: 4px; padding: 2rem; max-width: 360px; width: 100%;
+      text-align: center;
+    }
+    .pos-modal h3 {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem;
+      color: var(--accent); margin-bottom: 0.5rem;
+    }
+    .pos-modal p { font-size: 0.7rem; color: var(--muted); margin-bottom: 1.5rem; letter-spacing: 0.1em; }
+    .pos-choices { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .pos-choice-btn {
+      background: transparent; border: 1px solid var(--accent);
+      color: var(--accent); font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600; font-size: 0.9rem; letter-spacing: 0.1em;
+      padding: 0.6rem 1.2rem; cursor: pointer; border-radius: 2px;
+      transition: all 0.1s;
+    }
+    .pos-choice-btn:hover { background: var(--accent); color: #000; }
+
+    .player-grid {
+      display: grid; gap: 0.6rem;
+      max-height: 320px; overflow-y: auto; padding-right: 0.3rem;
+    }
+    .player-grid::-webkit-scrollbar { width: 4px; }
+    .player-grid::-webkit-scrollbar-track { background: var(--border); }
+    .player-grid::-webkit-scrollbar-thumb { background: var(--accent); }
+
+    .player-card {
+      display: grid; grid-template-columns: 1fr auto;
+      align-items: center; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 3px;
+      padding: 0.75rem 1rem; cursor: pointer; transition: all 0.1s; gap: 0.5rem;
+    }
+    .player-card:hover {
+      border-color: var(--accent); background: rgba(245,197,24,0.05);
+      transform: translateX(3px);
+    }
+    .player-name { font-weight: 600; font-size: 0.9rem; color: var(--text); }
+    .player-pos { font-size: 0.65rem; color: var(--accent2); letter-spacing: 0.1em; margin-bottom: 0.25rem; }
+    .player-stats { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.05em; }
+    .stat-highlight { color: var(--accent); font-weight: 600; }
+    .pick-btn {
+      background: transparent; border: 1px solid var(--accent); color: var(--accent);
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 0.1em; text-transform: uppercase; padding: 0.4rem 0.8rem;
+      cursor: pointer; border-radius: 2px; white-space: nowrap; transition: all 0.1s; flex-shrink: 0;
+    }
+    .pick-btn:hover { background: var(--accent); color: #000; }
+
+    /* Roster */
+    .roster-section { margin-bottom: 2rem; }
+    .roster-title { font-size: 0.7rem; letter-spacing: 0.3em; color: var(--muted); text-transform: uppercase; margin-bottom: 1rem; }
+    .roster-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; }
+    @media (max-width: 600px) { .roster-slots { grid-template-columns: repeat(2, 1fr); } }
+
+    .roster-slot {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 3px; padding: 1rem 0.75rem; text-align: center;
+      min-height: 120px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; position: relative; overflow: hidden;
+    }
+    .roster-slot.filled {
+      border-color: rgba(245,197,24,0.3);
+      background: linear-gradient(135deg, var(--card), rgba(245,197,24,0.04));
+    }
+    @keyframes pulse-border {
+      0%,100%{ box-shadow: 0 0 0 0 rgba(232,80,26,0.4); }
+      50%{ box-shadow: 0 0 0 4px rgba(232,80,26,0); }
+    }
+    .slot-pos-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; color: var(--muted); margin-bottom: 0.4rem; }
+    .slot-pos-label.filled { color: var(--accent2); }
+    .slot-player-name { font-size: 0.7rem; font-weight: 600; color: var(--text); text-align: center; line-height: 1.3; margin-bottom: 0.3rem; }
+    .slot-player-meta { font-size: 0.58rem; color: var(--muted); text-align: center; }
+    .slot-empty-text { font-size: 0.6rem; color: var(--border); letter-spacing: 0.15em; text-transform: uppercase; }
+
+    /* Simulate button */
+    .simulate-btn {
+      display: block; width: 100%;
+      background: linear-gradient(135deg, var(--accent2), #c43a10);
+      color: #fff; border: none; font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem; letter-spacing: 0.2em; padding: 1.2rem;
+      cursor: pointer; border-radius: 3px; transition: all 0.2s; margin-top: 1rem;
+    }
+    .simulate-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(232,80,26,0.4); }
+    .simulate-btn:disabled { background: var(--muted); cursor: default; transform: none; box-shadow: none; }
+
+    /* Result modal */
+    .result-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85); z-index: 100;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .result-overlay.active { display: flex; }
+    .result-modal {
+      background: var(--card); border: 2px solid var(--accent);
+      border-radius: 6px; padding: 3rem 2.5rem; max-width: 500px;
+      width: 100%; text-align: center; position: relative; overflow: hidden;
+    }
+    .result-modal::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent), var(--accent2));
+    }
+    .result-record {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(4rem,15vw,7rem); line-height: 1; letter-spacing: 0.05em;
+    }
+    .result-record.perfect { color: var(--green); text-shadow: 0 0 60px rgba(29,185,84,0.5); }
+    .result-record.good { color: var(--accent); }
+    .result-record.bad { color: var(--red); }
+    .result-message { font-size: 0.85rem; color: var(--muted); margin: 1rem 0 2rem; letter-spacing: 0.1em; line-height: 1.6; }
+    .result-team {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.result-player {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  border-radius: 4px;
+  padding: 0.7rem 0.9rem;
+}
+
+.result-player.elite {
+  box-shadow: 0 0 16px rgba(245, 197, 24, 0.35), 0 0 4px rgba(245, 197, 24, 0.5);
+}
+
+.result-player .badge {
+  width: 42px; height: 42px; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(232,80,26,0.15); color: var(--accent2);
+  font-family: 'Bebas Neue', sans-serif; line-height: 1.1;
+}
+.result-player.elite .badge { background: rgba(29,185,84,0.15); color: var(--green); }
+.result-player .badge .initials { font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; }
+.result-player .badge .pos-label { font-size: 0.5rem; letter-spacing: 0.1em; opacity: 0.85; }
+
+.result-player .info { min-width: 0; }
+.result-player .name { color: var(--text); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.15rem; }
+.result-player .meta { color: var(--muted); font-size: 0.62rem; letter-spacing: 0.05em; }
+
+.result-player .stat-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(34px, 1fr));
+  gap: 0.5rem;
+  text-align: center;
+}
+.result-player .stat-cell .val { color: var(--text); font-size: 0.85rem; font-weight: 700; }
+.result-player .stat-cell .lab { color: var(--muted); font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.1rem; }
+
+@media (max-width: 600px) {
+  .result-player { grid-template-columns: auto 1fr; }
+  .result-player .stat-row { grid-column: 1 / -1; margin-top: 0.5rem; }
+}
+    .ovr-display { font-size: 0.75rem; color: var(--muted); margin-bottom: 1rem; letter-spacing: 0.1em; }
+    .ovr-display strong { color: var(--accent); font-size: 1.1rem; }
+    .play-again-btn {
+      background: var(--accent); color: #000; border: none;
+      font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+      font-size: 0.85rem; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 1rem 2.5rem; cursor: pointer; border-radius: 2px; transition: all 0.15s;
+    }
+    .play-again-btn:hover { background: #ffd84a; }
+
+    /* Position OVR bars */
+    .pos-ovr-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+      gap: 0.4rem; margin-bottom: 1.5rem; font-size: 0.6rem;
+    }
+    .pos-ovr-cell {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 2px; padding: 0.5rem 0.3rem; text-align: center;
+    }
+    .pos-ovr-cell .poc-label { color: var(--accent2); font-size: 0.55rem; margin-bottom: 0.2rem; }
+    .pos-ovr-cell .poc-val { font-size: 0.95rem; font-weight: 600; }
+    .poc-val.high { color: var(--green); }
+    .poc-val.mid { color: var(--accent); }
+    .poc-val.low { color: var(--red); }
+
+    /* Confetti */
+    .confetti-container { position: fixed; inset: 0; pointer-events: none; z-index: 200; }
+    .confetti-piece {
+      position: absolute; width: 8px; height: 8px; top: -10px;
+      animation: fall linear forwards;
+    }
+    @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+  </style>
+</head>
+<body>
+  <div class="scanlines"></div>
+  <header>
+    <div class="league-title">DPBL — GO 82-0</div>
+    <div class="subtitle">Diggerson Professional Basketball League · All-Time Draft Challenge</div>
+  </header>
+
+  <div class="game-wrap">
+    <div id="loadingScreen">
+      <div style="font-size:0.7rem;letter-spacing:0.3em;color:var(--muted);text-transform:uppercase">Loading Player Database</div>
+      <div class="loading-bar"><div class="loading-fill"></div></div>
+    </div>
+
+    <div id="gameContent" style="display:none">
+      <!-- Roster display -->
+      <div class="roster-section">
+        <div class="roster-title">▸ Your Starting Five</div>
+        <div class="roster-slots" id="rosterSlots"></div>
+      </div>
+
+      <!-- Slot machine -->
+      <div class="slot-section" id="slotSection">
+        <div class="spin-label" id="spinLabel">▸ Roll the Randomizer</div>
+        <div class="slot-display" id="slotDisplay">
+          <span class="slot-decade">—</span>
+          <span style="color:var(--muted)">·</span>
+          <span class="slot-team">—</span>
+        </div>
+        <button class="spin-btn" id="spinBtn" onclick="spin()">Roll</button>
+        <div class="switch-row">
+          <button class="switch-btn" id="eraSwitch" onclick="switchEra()">🔀 Switch Era (1 left)</button>
+          <button class="switch-btn" id="teamSwitch" onclick="switchTeam()">🔀 Switch Team (1 left)</button>
+        </div>
+        <div class="rounds-left" id="roundsLeft">5 picks remaining</div>
+      </div>
+
+      <!-- Player picker -->
+      <div class="picker-section" id="pickerSection">
+        <div class="picker-header" id="pickerHeader">Choose your player</div>
+        <div class="player-grid" id="playerGrid"></div>
+      </div>
+
+      <!-- Simulate button -->
+      <button class="simulate-btn" id="simulateBtn" disabled onclick="simulate()">
+        ◈ Simulate Season ◈
+      </button>
+    </div>
+  </div>
+
+  <!-- Position choice modal -->
+  <div class="pos-modal-overlay" id="posModal">
+    <div class="pos-modal">
+      <h3 id="posModalName"></h3>
+      <p id="posModalMsg">This player qualifies for multiple positions.<br>Choose which slot to fill:</p>
+      <div class="pos-choices" id="posChoices"></div>
+    </div>
+  </div>
+
+  <!-- Result overlay -->
+  <div class="result-overlay" id="resultOverlay">
+    <div class="result-modal">
+      <div class="result-record" id="resultRecord"></div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="ovr-display" id="ovrDisplay"></div>
+      <div class="pos-ovr-grid" id="posOvrGrid"></div>
+      <div class="result-team" id="resultTeam"></div>
+      <button class="play-again-btn" onclick="resetGame()">Play Again</button>
+    </div>
+  </div>
+
+  <div class="confetti-container" id="confettiContainer"></div>
+
+  <script>
+    // ---- CONFIG ----
+    const PLAYERS_URL = './players.json';
+    const COLORS_URL = './colors.json';
+    const POS_ORDER = ['PG', 'SG', 'SF', 'PF', 'C'];
+
+    // Adjusted mode position weights
+    const POS_WEIGHTS = {
+      PG: { PPG: 0.40, RPG: 0.10, APG: 0.35, SPG: 0.10, BPG: 0.05 },
+      SG: { PPG: 0.45, RPG: 0.10, APG: 0.20, SPG: 0.20, BPG: 0.05 },
+      SF: { PPG: 0.45, RPG: 0.15, APG: 0.20, SPG: 0.15, BPG: 0.05 },
+      PF: { PPG: 0.40, RPG: 0.30, APG: 0.10, SPG: 0.10, BPG: 0.10 },
+      C:  { PPG: 0.40, RPG: 0.35, APG: 0.10, SPG: 0.05, BPG: 0.10 },
+    };
+
+    // Era normalization baselines: avg stats per position per decade
+    // Rather than complex era-norm, we'll normalize against the 90th-percentile
+    // star threshold per position (what "100 OVR" looks like per stat)
+    const POS_CEILINGS = {
+      PG: { PPG: 22, RPG: 6.5, APG: 8.5, SPG: 2.0, BPG: 1.0 },
+      SG: { PPG: 19, RPG: 6.5, APG: 4.5, SPG: 1.8, BPG: 1.0 },
+      SF: { PPG: 18, RPG: 9.0, APG: 4.5, SPG: 1.6, BPG: 1.3 },
+      PF: { PPG: 15, RPG: 11.0, APG: 4.5, SPG: 1.5, BPG: 1.6 },
+      C:  { PPG: 15, RPG: 11.0, APG: 4.5, SPG: 1.3, BPG: 1.5 },
+    };
+
+    // Ambiguous position mappings
+    const POS_EXPAND = {
+      G:  ['PG', 'SG'],
+      F:  ['SF', 'PF'],
+      GF: ['PG', 'SG', 'SF', 'PF'],
+      FC: ['SF', 'PF', 'C'],
+    };
+
+    // ---- STATE ----
+    let ALL_PLAYERS = [];
+    let COMBO_INDEX = {};
+    let ALL_COMBOS = [];
+    let TEAM_COLORS = {};
+    let state = {};
+
+    // ---- BOOT ----
+    async function loadPlayers() {
+      try {
+        const [playersResp, colorsResp] = await Promise.all([
+          fetch(PLAYERS_URL),
+          fetch(COLORS_URL)
+        ]);
+        ALL_PLAYERS = await playersResp.json();
+        const colorsRaw = await colorsResp.json();
+        TEAM_COLORS = colorsRaw[0]; // colors.json is an array containing one object
+        buildIndex();
+        initGame();
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('gameContent').style.display = 'block';
+      } catch(e) {
+        document.getElementById('loadingScreen').innerHTML =
+          '<div style="color:var(--red);font-size:0.8rem;letter-spacing:0.1em">Failed to load players.json or colors.json.<br>Make sure both are in the same folder as this HTML file.</div>';
+      }
+    }
+
+    function getContrastText(hex) {
+      const r = parseInt(hex.slice(1,3),16);
+      const g = parseInt(hex.slice(3,5),16);
+      const b = parseInt(hex.slice(5,7),16);
+      const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+      return luminance > 0.55 ? '#000000' : '#ffffff';
+    }
+
+    function buildIndex() {
+      COMBO_INDEX = {};
+      ALL_PLAYERS.forEach(p => {
+        const key = p.decade + '||' + p.team;
+        if (!COMBO_INDEX[key]) COMBO_INDEX[key] = [];
+        COMBO_INDEX[key].push(p);
+      });
+      ALL_COMBOS = Object.keys(COMBO_INDEX).filter(k => COMBO_INDEX[k].length >= 1);
+    }
+
+    function initGame() {
+      state = {
+        round: 0,
+        picks: [],        // [{pos, player}]
+        currentCombo: null,
+        spinning: false,
+        eraUsed: false,
+        teamUsed: false,
+      };
+      initRoster();
+      updateRoster();
+      updateSwitchBtns();
+      document.getElementById('simulateBtn').disabled = true;
+      document.getElementById('spinBtn').disabled = false;
+      document.getElementById('roundsLeft').textContent = '5 picks remaining';
+      document.getElementById('spinLabel').textContent = '▸ Roll the Randomizer';
+      document.getElementById('slotDisplay').innerHTML =
+        `<span class="slot-decade">—</span><span style="color:var(--muted)">·</span><span class="slot-team">—</span>`;
+      document.getElementById('pickerSection').classList.remove('active');
+    }
+
+    // ---- ROSTER ----
+    function initRoster() {
+      const slots = document.getElementById('rosterSlots');
+      slots.innerHTML = POS_ORDER.map(pos => `
+        <div class="roster-slot" id="rslot-${pos}">
+          <div class="slot-pos-label" id="rslot-pos-${pos}">${pos}</div>
+          <div class="slot-empty-text">Empty</div>
+        </div>
+      `).join('');
+    }
+
+    function updateRoster() {
+      POS_ORDER.forEach(pos => {
+        const slot = document.getElementById(`rslot-${pos}`);
+        const pick = state.picks.find(p => p.pos === pos);
+        if (pick) {
+          slot.classList.add('filled');
+          slot.innerHTML = `
+            <div class="slot-pos-label filled">${pos}</div>
+            <div class="slot-player-name">${pick.player.name}</div>
+            <div class="slot-player-meta">${pick.player.decade} ${pick.player.team}</div>
+            <div class="slot-player-meta" style="margin-top:0.2rem">${pick.player.PPG}pts · ${pick.player.RPG}reb · ${pick.player.APG}ast</div>
+          `;
+        } else {
+          slot.classList.remove('filled');
+          slot.innerHTML = `
+            <div class="slot-pos-label" id="rslot-pos-${pos}">${pos}</div>
+            <div class="slot-empty-text">Empty</div>
+          `;
+        }
+      });
+    }
+
+    function getNeededPos() {
+      const filled = state.picks.map(p => p.pos);
+      return POS_ORDER.filter(p => !filled.includes(p));
+    }
+
+    // Return which standard positions a player's raw pos can fill (intersected with needed)
+    function getEligiblePositions(rawPos, needed) {
+      const canonical = POS_EXPAND[rawPos];
+      if (canonical) {
+        return needed.filter(p => canonical.includes(p));
+      }
+      // Already a standard pos
+      return needed.includes(rawPos) ? [rawPos] : [];
+    }
+
+    // ---- SWITCH BUTTONS ----
+    function updateSwitchBtns() {
+      const eraBtn = document.getElementById('eraSwitch');
+      const teamBtn = document.getElementById('teamSwitch');
+      const hasCombo = !!state.currentCombo;
+
+      eraBtn.disabled = state.eraUsed || !hasCombo;
+      eraBtn.className = 'switch-btn' + (state.eraUsed ? ' used' : '');
+      eraBtn.textContent = state.eraUsed ? '🔀 Switch Era (used)' : '🔀 Switch Era (1 left)';
+
+      teamBtn.disabled = state.teamUsed || !hasCombo;
+      teamBtn.className = 'switch-btn' + (state.teamUsed ? ' used' : '');
+      teamBtn.textContent = state.teamUsed ? '🔀 Switch Team (used)' : '🔀 Switch Team (1 left)';
+    }
+
+    function switchEra() {
+      if (state.eraUsed || !state.currentCombo) return;
+      state.eraUsed = true;
+      // Pick a new era (decade) but keep the team
+      const [currentDecade, currentTeam] = state.currentCombo.split('||');
+      const needed = getNeededPos();
+      let newCombo = null;
+      let tries = 0;
+      while (!newCombo && tries < 300) {
+        const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+        const [d, t] = candidate.split('||');
+        if (t === currentTeam && d !== currentDecade) {
+          const players = COMBO_INDEX[candidate].filter(p => getEligiblePositions(p.pos, needed).length > 0);
+          if (players.length > 0) newCombo = candidate;
+        }
+        tries++;
+      }
+      // Fallback: any combo with a different era
+      if (!newCombo) {
+        for (let i = 0; i < 200; i++) {
+          const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+          const [d] = candidate.split('||');
+          if (d !== currentDecade) {
+            const players = COMBO_INDEX[candidate].filter(p => getEligiblePositions(p.pos, needed).length > 0);
+            if (players.length > 0) { newCombo = candidate; break; }
+          }
+        }
+      }
+      if (!newCombo) newCombo = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+      applyNewCombo(newCombo);
+    }
+
+    function switchTeam() {
+      if (state.teamUsed || !state.currentCombo) return;
+      state.teamUsed = true;
+      const [currentDecade, currentTeam] = state.currentCombo.split('||');
+      const needed = getNeededPos();
+      let newCombo = null;
+      let tries = 0;
+      while (!newCombo && tries < 300) {
+        const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+        const [d, t] = candidate.split('||');
+        if (d === currentDecade && t !== currentTeam) {
+          const players = COMBO_INDEX[candidate].filter(p => getEligiblePositions(p.pos, needed).length > 0);
+          if (players.length > 0) newCombo = candidate;
+        }
+        tries++;
+      }
+      // Fallback
+      if (!newCombo) {
+        for (let i = 0; i < 200; i++) {
+          const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+          const [, t] = candidate.split('||');
+          if (t !== currentTeam) {
+            const players = COMBO_INDEX[candidate].filter(p => getEligiblePositions(p.pos, needed).length > 0);
+            if (players.length > 0) { newCombo = candidate; break; }
+          }
+        }
+      }
+      if (!newCombo) newCombo = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+      applyNewCombo(newCombo);
+    }
+
+    function applyNewCombo(combo) {
+      state.currentCombo = combo;
+      const [d, t] = combo.split('||');
+      const teamColor = TEAM_COLORS[t]?.primary || 'var(--accent2)';
+      document.getElementById('slotDisplay').innerHTML =
+        `<span class="slot-decade">${d}</span><span style="color:var(--muted)">·</span><span class="slot-team" style="color:${teamColor}">${t}</span>`;
+      updateSwitchBtns();
+      showPicker(combo);
+    }
+
+    // ---- SPIN ----
+    function spin() {
+      if (state.spinning) return;
+      const needed = getNeededPos();
+      if (needed.length === 0) return;
+
+      state.spinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('pickerSection').classList.remove('active');
+      document.getElementById('eraSwitch').disabled = true;
+      document.getElementById('teamSwitch').disabled = true;
+
+      const display = document.getElementById('slotDisplay');
+      display.classList.add('spinning');
+
+      let ticks = 0;
+      const maxTicks = 18;
+      const interval = setInterval(() => {
+        const randCombo = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+        const [dec, team] = randCombo.split('||');
+        const tickColor = TEAM_COLORS[team]?.primary || 'var(--accent2)';
+        display.innerHTML = `<span class="slot-decade">${dec}</span><span style="color:var(--muted)">·</span><span class="slot-team" style="color:${tickColor}">${team}</span>`;
+        ticks++;
+        if (ticks >= maxTicks) {
+          clearInterval(interval);
+          display.classList.remove('spinning');
+          let chosen = null;
+          let tries = 0;
+          while (!chosen && tries < 300) {
+            const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+            const players = COMBO_INDEX[candidate];
+            const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
+            if (hasFit) chosen = candidate;
+            tries++;
+          }
+          if (!chosen) chosen = ALL_COMBOS[0];
+          state.currentCombo = chosen;
+          const [d, t] = chosen.split('||');
+          const chosenColor = TEAM_COLORS[t]?.primary || 'var(--accent2)';
+          display.innerHTML = `<span class="slot-decade">${d}</span><span style="color:var(--muted)">·</span><span class="slot-team" style="color:${chosenColor}">${t}</span>`;
+          state.spinning = false;
+          updateSwitchBtns();
+          showPicker(chosen);
+        }
+      }, 70);
+    }
+
+    // ---- PICKER ----
+    function showPicker(combo) {
+      const needed = getNeededPos();
+      const allPlayers = COMBO_INDEX[combo];
+      const eligible = allPlayers.filter(p => getEligiblePositions(p.pos, needed).length > 0);
+      const sorted = [...eligible].sort((a, b) => b.PPG - a.PPG);
+
+      const [decade, team] = combo.split('||');
+      document.getElementById('pickerHeader').innerHTML = `
+        <span style="color:var(--accent2)">${decade}</span>
+        <span style="color:var(--muted)"> · </span>
+        <span style="color:var(--accent)">${team}</span>
+        <span style="color:var(--muted)"> — pick one player</span>
+      `;
+
+      const grid = document.getElementById('playerGrid');
+      grid.innerHTML = sorted.map(p => {
+        const eligPos = getEligiblePositions(p.pos, needed);
+        const posDisplay = eligPos.length > 1 ? eligPos.join('/') : (eligPos[0] || p.pos);
+        const safeP = JSON.stringify(p).replace(/"/g, '&quot;');
+        return `
+          <div class="player-card" onclick="handlePlayerClick(${safeP})">
+            <div>
+              <div class="player-pos">${posDisplay} · ${p.GP} GP</div>
+              <div class="player-name">${p.name}</div>
+              <div class="player-stats">
+                <span class="stat-highlight">${p.PPG}</span> PPG ·
+                <span class="stat-highlight">${p.RPG}</span> RPG ·
+                <span class="stat-highlight">${p.APG}</span> APG ·
+                ${p.SPG} SPG · ${p.BPG} BPG
+              </div>
+            </div>
+            <button class="pick-btn">Draft</button>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('pickerSection').classList.add('active');
+      const roundsLeft = 5 - state.round - 1;
+      document.getElementById('roundsLeft').textContent =
+        `${roundsLeft} ${roundsLeft === 1 ? 'pick' : 'picks'} remaining after this`;
+    }
+
+    let pendingPlayer = null;
+
+    function handlePlayerClick(player) {
+      const needed = getNeededPos();
+      const eligPos = getEligiblePositions(player.pos, needed);
+
+      if (eligPos.length === 0) return;
+      if (eligPos.length === 1) {
+        confirmPick(player, eligPos[0]);
+        return;
+      }
+
+      // Multiple eligible positions — show modal
+      pendingPlayer = player;
+      document.getElementById('posModalName').textContent = player.name;
+      document.getElementById('posModalMsg').textContent =
+        `This player qualifies for multiple positions. Choose which slot to fill:`;
+      const choices = document.getElementById('posChoices');
+      choices.innerHTML = eligPos.map(pos => `
+        <button class="pos-choice-btn" onclick="choosePosAndPick('${pos}')">${pos}</button>
+      `).join('');
+      document.getElementById('posModal').classList.add('active');
+    }
+
+    function choosePosAndPick(pos) {
+      document.getElementById('posModal').classList.remove('active');
+      if (pendingPlayer) {
+        confirmPick(pendingPlayer, pos);
+        pendingPlayer = null;
+      }
+    }
+
+    function confirmPick(player, pos) {
+      state.picks.push({ pos, player });
+      state.round++;
+      document.getElementById('pickerSection').classList.remove('active');
+      state.currentCombo = null;
+      updateRoster();
+      updateSwitchBtns();
+
+      const remaining = getNeededPos();
+      if (remaining.length === 0) {
+        document.getElementById('spinBtn').disabled = true;
+        document.getElementById('simulateBtn').disabled = false;
+        document.getElementById('roundsLeft').textContent = 'Roster complete — simulate!';
+        document.getElementById('spinLabel').textContent = '▸ All positions filled';
+      } else {
+        document.getElementById('spinBtn').disabled = false;
+        const r = remaining.length;
+        document.getElementById('roundsLeft').textContent = `${r} ${r === 1 ? 'pick' : 'picks'} remaining`;
+      }
+    }
+
+    // ---- SIMULATE (Adjusted Mode) ----
+    function calcPlayerOVR(player, pos) {
+      const weights = POS_WEIGHTS[pos]; 
+      const ceilings = POS_CEILINGS[pos]; 
+      let raw = 0;
+      for (const stat of ['PPG', 'RPG', 'APG', 'SPG', 'BPG']) {
+        const normed = player[stat] / ceilings[stat];
+        raw += weights[stat] * normed;
+      }
+      // raw is 0-1, scale to 0-100
+      let ovr = raw * 100;
+      return ovr;
+    }
+
+    function simulate() {
+      const team = state.picks.map(p => ({ pos: p.pos, player: p.player }));
+
+      // Per-position OVRs
+      const posOVRs = {};
+      team.forEach(({ pos, player }) => {
+        posOVRs[pos] = calcPlayerOVR(player, pos);
+      });
+
+      // Team OVR = geometric mean of the 5 position OVRs
+      const product = Object.values(posOVRs).reduce((acc, v) => acc * v, 1);
+      let teamOVR = Math.pow(product, 1/5);
+
+      // Bonus for high overall teams (5 x 100 = 110)
+      // Scale so geometric mean of 100s = 110
+      // Apply scaling: teamOVR * (110/100) if all slots rated
+      // Actually: max possible geo mean = 100, target 110 for perfect team
+      // So scale by 1.1
+      teamOVR = teamOVR * 1.1;
+
+      // Win curve: adjusted uses exponent 2.2
+      // wins = 82 * (OVR / 110)^2.2
+      const winFrac = Math.pow(teamOVR / 110, 2.2);
+      //const noise = (Math.random() - 0.5) * 3;
+      let wins = Math.round(82 * winFrac);
+      wins = Math.min(82, wins);
+
+
+      showResult(wins, 82 - wins, teamOVR, posOVRs, team);
+    }
+
+    function showResult(wins, losses, teamOVR, posOVRs, team) {
+      const overlay = document.getElementById('resultOverlay');
+      const record = document.getElementById('resultRecord');
+      const msg = document.getElementById('resultMessage');
+      const ovrEl = document.getElementById('ovrDisplay');
+      const posGrid = document.getElementById('posOvrGrid');
+      const teamEl = document.getElementById('resultTeam');
+
+      record.textContent = `${wins}-${losses}`;
+      record.className = 'result-record';
+
+      if (wins === 82) {
+        record.classList.add('perfect');
+        msg.textContent = 'Perfect. Your DPBL all-time squad ran the table. Unbeaten. Untouched.';
+        launchConfetti();
+      } else if (wins >= 70) {
+        record.classList.add('good');
+        msg.textContent = `${wins} wins. Historic season — but the championship slipped away.`;
+      } else if (wins >= 55) {
+        record.classList.add('good');
+        msg.textContent = `Solid squad, but not quite legendary. One weak link hurt you badly.`;
+      } else if (wins >= 40) {
+        record.classList.add('bad');
+        msg.textContent = `Below average. Your weakest position dragged the whole team down.`;
+      } else {
+        record.classList.add('bad');
+        msg.textContent = `Rough one. In Adjusted Mode, one bad player tanks the entire season.`;
+      }
+
+      ovrEl.innerHTML = `Team OVR: <strong>${teamOVR.toFixed(1)}</strong>`;
+
+      // posGrid.innerHTML = POS_ORDER.map(pos => {
+      //   const ovr = posOVRs[pos] || 0;
+      //   const cls = ovr >= 85 ? 'high' : ovr >= 65 ? 'mid' : 'low';
+      //   return `
+      //     <div class="pos-ovr-cell">
+      //       <div class="poc-label">${pos}</div>
+      //       <div class="poc-val ${cls}">${ovr.toFixed(0)}</div>
+      //     </div>
+      //   `;
+      // }).join('');
+
+      teamEl.innerHTML = [...team].sort((a, b) => POS_ORDER.indexOf(a.pos) - POS_ORDER.indexOf(b.pos)).map(({ pos, player }) => {
+        const ovr = Math.round(posOVRs[pos]);
+        const initials = player.name.split(' ').map(w => w[0]).join('').toUpperCase();
+        const eliteClass = ovr >= 90 ? ' elite' : '';
+        const colors = TEAM_COLORS[player.team] || { primary: '#e8501a', secondary: '#ffffff' };
+        const badgeText = getContrastText(colors.primary);
+        return `
+          <div class="result-player${eliteClass}" style="border-left-color:${colors.primary}; background: linear-gradient(135deg, var(--surface), ${colors.primary}1a);">
+            <div class="badge" style="background:${colors.primary}; color:${badgeText};">
+              <div class="initials">${initials}</div>
+              <div class="pos-label" style="color:${colors.secondary};">${pos}</div>
+            </div>
+            <div class="info">
+              <div class="name">${player.name}</div>
+              <div class="meta">${player.team} · ${player.decade} · ${ovr} OVR</div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-cell"><div class="val">${player.PPG}</div><div class="lab">PPG</div></div>
+              <div class="stat-cell"><div class="val">${player.RPG}</div><div class="lab">RPG</div></div>
+              <div class="stat-cell"><div class="val">${player.APG}</div><div class="lab">APG</div></div>
+              <div class="stat-cell"><div class="val">${player.SPG}</div><div class="lab">SPG</div></div>
+              <div class="stat-cell"><div class="val">${player.BPG}</div><div class="lab">BPG</div></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      overlay.classList.add('active');
+    }
+
+    function launchConfetti() {
+      const container = document.getElementById('confettiContainer');
+      const colors = ['#f5c518', '#e8501a', '#1db954', '#ffffff', '#ff6b6b'];
+      for (let i = 0; i < 80; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.width = (Math.random() * 8 + 4) + 'px';
+        piece.style.height = (Math.random() * 8 + 4) + 'px';
+        piece.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        piece.style.animationDelay = (Math.random() * 1.5) + 's';
+        container.appendChild(piece);
+        piece.addEventListener('animationend', () => piece.remove());
+      }
+    }
+
+    function resetGame() {
+      document.getElementById('resultOverlay').classList.remove('active');
+      document.getElementById('confettiContainer').innerHTML = '';
+      initGame();
+    }
+
+    // ---- START ----
+    loadPlayers();
+  </script>
+</body>
+</html>
