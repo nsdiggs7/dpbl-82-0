@@ -857,20 +857,20 @@
 
       if (wins === 82) {
         record.classList.add('perfect');
-        msg.textContent = 'Perfect. Your DPBL all-time squad ran the table. Unbeaten. Untouched.';
+        msg.textContent = 'Perfect! That\'s how it\'s done.';
         launchConfetti();
       } else if (wins >= 70) {
         record.classList.add('good');
-        msg.textContent = `${wins} wins. Historic season — but the championship slipped away.`;
+        msg.textContent = `${wins} wins. Historic season. Close one!`;
       } else if (wins >= 55) {
         record.classList.add('good');
-        msg.textContent = `Solid squad, but not quite legendary. One weak link hurt you badly.`;
+        msg.textContent = `Solid squad, but not quite legendary. Do better.`;
       } else if (wins >= 40) {
         record.classList.add('bad');
-        msg.textContent = `Below average. Your weakest position dragged the whole team down.`;
+        msg.textContent = `Below average. Are we serious.`;
       } else {
         record.classList.add('bad');
-        msg.textContent = `Rough one. In Adjusted Mode, one bad player tanks the entire season.`;
+        msg.textContent = `Rough one. Did you even try.`;
       }
 
       ovrEl.innerHTML = `Team OVR: <strong>${teamOVR.toFixed(1)}</strong>`;
