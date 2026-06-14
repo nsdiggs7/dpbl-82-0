@@ -171,6 +171,9 @@
     .player-grid::-webkit-scrollbar { width: 4px; }
     .player-grid::-webkit-scrollbar-track { background: var(--border); }
     .player-grid::-webkit-scrollbar-thumb { background: var(--accent); }
+    .result-modal::-webkit-scrollbar { width: 4px; }
+    .result-modal::-webkit-scrollbar-track { background: var(--border); }
+    .result-modal::-webkit-scrollbar-thumb { background: var(--accent); }
 
     .player-card {
       display: grid; grid-template-columns: 1fr auto;
@@ -235,13 +238,18 @@
     .result-overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.85); z-index: 100;
-      align-items: center; justify-content: center; padding: 1rem;
+      align-items: center; justify-content: center;
+      padding: 2rem 1rem;
+      box-sizing: border-box;
     }
     .result-overlay.active { display: flex; }
     .result-modal {
       background: var(--card); border: 2px solid var(--accent);
-      border-radius: 6px; padding: 3rem 2.5rem; max-width: 500px;
-      width: 100%; text-align: center; position: relative; overflow: hidden;
+      border-radius: 6px; padding: 2rem 1.5rem; max-width: 500px;
+      width: 100%; text-align: center; position: relative;
+      max-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
     .result-modal::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
