@@ -835,7 +835,7 @@
 
       // Win curve: adjusted uses exponent 2.2
       // wins = 82 * (OVR / 110)^2.2
-      const winFrac = Math.pow(teamOVR / 110, 2.2);
+      const winFrac = Math.pow(teamOVR / 110, 3);
       //const noise = (Math.random() - 0.5) * 3;
       let wins = Math.round(82 * winFrac);
       wins = Math.min(82, wins);
@@ -874,17 +874,6 @@
       }
 
       ovrEl.innerHTML = `Team OVR: <strong>${teamOVR.toFixed(1)}</strong>`;
-
-      // posGrid.innerHTML = POS_ORDER.map(pos => {
-      //   const ovr = posOVRs[pos] || 0;
-      //   const cls = ovr >= 85 ? 'high' : ovr >= 65 ? 'mid' : 'low';
-      //   return `
-      //     <div class="pos-ovr-cell">
-      //       <div class="poc-label">${pos}</div>
-      //       <div class="poc-val ${cls}">${ovr.toFixed(0)}</div>
-      //     </div>
-      //   `;
-      // }).join('');
 
       teamEl.innerHTML = [...team].sort((a, b) => POS_ORDER.indexOf(a.pos) - POS_ORDER.indexOf(b.pos)).map(({ pos, player }) => {
         const ovr = Math.round(posOVRs[pos]);
