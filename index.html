@@ -507,6 +507,8 @@
         spinning: false,
         eraUsed: false,
         teamUsed: false,
+        usedCombos: [],
+        draftedNames: [],
       };
       initRoster();
       updateRoster();
@@ -586,7 +588,6 @@
     function switchEra() {
       if (state.eraUsed || !state.currentCombo) return;
       state.eraUsed = true;
-      // Pick a new era (decade) but keep the team
       const [currentDecade, currentTeam] = state.currentCombo.split('||');
       const needed = getNeededPos();
       let newCombo = null;
@@ -594,24 +595,25 @@
       while (!newCombo && tries < 300) {
         const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
         const [d, t] = candidate.split('||');
-        if (t === currentTeam && d !== currentDecade) {
-          const players = COMBO_INDEX[candidate].filter(p => getEligiblePositions(p.pos, needed).length > 0);
-          if (players.length > 0) newCombo = candidate;
+        if (t === currentTeam && d !== currentDecade && !state.usedCombos.includes(candidate)) {
+          const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
+          const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
+          if (hasFit) newCombo = candidate;
         }
         tries++;
       }
-      // Fallback: any combo with a different era
       if (!newCombo) {
         for (let i = 0; i < 200; i++) {
           const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
           const [d] = candidate.split('||');
-          if (d !== currentDecade) {
-            const players = COMBO_INDEX[candidate].filter(p => getEligiblePositions(p.pos, needed).length > 0);
-            if (players.length > 0) { newCombo = candidate; break; }
+          if (d !== currentDecade && !state.usedCombos.includes(candidate)) {
+            const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
+            const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
+            if (hasFit) { newCombo = candidate; break; }
           }
         }
       }
-      if (!newCombo) newCombo = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+      if (!newCombo) newCombo = ALL_COMBOS.find(c => !state.usedCombos.includes(c)) || ALL_COMBOS[0];
       applyNewCombo(newCombo);
     }
 
@@ -625,29 +627,31 @@
       while (!newCombo && tries < 300) {
         const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
         const [d, t] = candidate.split('||');
-        if (d === currentDecade && t !== currentTeam) {
-          const players = COMBO_INDEX[candidate].filter(p => getEligiblePositions(p.pos, needed).length > 0);
-          if (players.length > 0) newCombo = candidate;
+        if (d === currentDecade && t !== currentTeam && !state.usedCombos.includes(candidate)) {
+          const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
+          const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
+          if (hasFit) newCombo = candidate;
         }
         tries++;
       }
-      // Fallback
       if (!newCombo) {
         for (let i = 0; i < 200; i++) {
           const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
           const [, t] = candidate.split('||');
-          if (t !== currentTeam) {
-            const players = COMBO_INDEX[candidate].filter(p => getEligiblePositions(p.pos, needed).length > 0);
-            if (players.length > 0) { newCombo = candidate; break; }
+          if (t !== currentTeam && !state.usedCombos.includes(candidate)) {
+            const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
+            const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
+            if (hasFit) { newCombo = candidate; break; }
           }
         }
       }
-      if (!newCombo) newCombo = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+      if (!newCombo) newCombo = ALL_COMBOS.find(c => !state.usedCombos.includes(c)) || ALL_COMBOS[0];
       applyNewCombo(newCombo);
     }
 
     function applyNewCombo(combo) {
       state.currentCombo = combo;
+      if (!state.usedCombos.includes(combo)) state.usedCombos.push(combo);
       const [d, t] = combo.split('||');
       const teamColor = TEAM_COLORS[t]?.primary || 'var(--accent2)';
       document.getElementById('slotDisplay').innerHTML =
@@ -686,13 +690,15 @@
           let tries = 0;
           while (!chosen && tries < 300) {
             const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
-            const players = COMBO_INDEX[candidate];
+            if (state.usedCombos.includes(candidate)) { tries++; continue; }
+            const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
             const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
             if (hasFit) chosen = candidate;
             tries++;
           }
-          if (!chosen) chosen = ALL_COMBOS[0];
+          if (!chosen) chosen = ALL_COMBOS.find(c => !state.usedCombos.includes(c)) || ALL_COMBOS[0];
           state.currentCombo = chosen;
+          if (!state.usedCombos.includes(chosen)) state.usedCombos.push(chosen);
           const [d, t] = chosen.split('||');
           const chosenColor = TEAM_COLORS[t]?.primary || 'var(--accent2)';
           display.innerHTML = `<span class="slot-decade">${d}</span><span style="color:var(--muted)">·</span><span class="slot-team" style="color:${chosenColor}">${t}</span>`;
@@ -707,7 +713,10 @@
     function showPicker(combo) {
       const needed = getNeededPos();
       const allPlayers = COMBO_INDEX[combo];
-      const eligible = allPlayers.filter(p => getEligiblePositions(p.pos, needed).length > 0);
+      const eligible = allPlayers.filter(p =>
+        !state.draftedNames.includes(p.name) &&
+        getEligiblePositions(p.pos, needed).length > 0
+      );
       const sorted = [...eligible].sort((a, b) => b.PPG - a.PPG);
 
       const [decade, team] = combo.split('||');
@@ -780,6 +789,7 @@
 
     function confirmPick(player, pos) {
       state.picks.push({ pos, player });
+      state.draftedNames.push(player.name);
       state.round++;
       document.getElementById('pickerSection').classList.remove('active');
       state.currentCombo = null;
