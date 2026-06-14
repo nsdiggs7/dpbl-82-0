@@ -317,13 +317,19 @@
   }
 
   @media (max-width: 600px) {
-    .result-overlay {
-      padding: 0.5rem;
-    }
-    .result-modal {
-      max-height: 96vh;
-      padding: 1.25rem 1rem;
-    }
+     .result-overlay {
+        padding: 0.25rem;
+        align-items: stretch;
+      }
+      .result-modal {
+        max-height: 100vh;
+        height: 100vh;
+        padding: 1rem 0.85rem;
+        display: flex;
+        flex-direction: column;
+        border-radius: 0;
+        overflow-y: auto;
+      }
     .result-message {
       font-size: 0.7rem;
       margin: 0.5rem 0 0.75rem;
@@ -338,8 +344,14 @@
       margin-bottom: 0.75rem;
     }
     .play-again-btn {
-      padding: 0.7rem 2rem;
-      font-size: 0.75rem;
+       position: sticky;
+        bottom: 0;
+        width: 100%;
+        margin-top: 0.5rem;
+        padding: 0.85rem 1rem;
+        font-size: 0.8rem;
+        background: var(--accent);
+        z-index: 10;
     }
     .result-player {
       padding: 0.45rem 0.6rem;
