@@ -317,19 +317,22 @@
   }
 
   @media (max-width: 600px) {
-     .result-overlay {
-        padding: 0.25rem;
-        align-items: stretch;
-      }
-      .result-modal {
-        max-height: 100vh;
-        height: 100vh;
-        padding: 1rem 0.85rem;
-        display: flex;
-        flex-direction: column;
-        border-radius: 0;
-        overflow-y: auto;
-      }
+    .result-overlay {
+      padding: 0.25rem;
+      align-items: center;
+    }
+    .result-modal {
+      max-height: 92vh;
+      height: auto;
+      padding: 1rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      border-radius: 0;
+      overflow-y: auto;
+    }
+    .result-record {
+      font-size: clamp(3.5rem, 18vw, 7rem);
+    }
     .result-message {
       font-size: 0.7rem;
       margin: 0.5rem 0 0.75rem;
@@ -369,7 +372,7 @@
     }
     .result-player .stat-cell .val { font-size: 0.7rem; }
     .result-player .stat-cell .lab { font-size: 0.45rem; }
-}
+  }
     .ovr-display { font-size: 0.75rem; color: var(--muted); margin-bottom: 1rem; letter-spacing: 0.1em; }
     .ovr-display strong { color: var(--accent); font-size: 1.1rem; }
     .play-again-btn {
