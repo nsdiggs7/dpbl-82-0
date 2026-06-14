@@ -586,86 +586,36 @@
     }
 
     function switchEra() {
-      if (state.eraUsed || !state.currentCombo) return;
+      if (state.eraUsed || !state.currentCombo || state.spinning) return;
       state.eraUsed = true;
       const [currentDecade, currentTeam] = state.currentCombo.split('||');
-      const needed = getNeededPos();
-      let newCombo = null;
-      let tries = 0;
-      while (!newCombo && tries < 300) {
-        const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
-        const [d, t] = candidate.split('||');
-        if (t === currentTeam && d !== currentDecade && !state.usedCombos.includes(candidate)) {
-          const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
-          const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
-          if (hasFit) newCombo = candidate;
-        }
-        tries++;
-      }
-      if (!newCombo) {
-        for (let i = 0; i < 200; i++) {
-          const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
-          const [d] = candidate.split('||');
-          if (d !== currentDecade && !state.usedCombos.includes(candidate)) {
-            const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
-            const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
-            if (hasFit) { newCombo = candidate; break; }
-          }
-        }
-      }
-      if (!newCombo) newCombo = ALL_COMBOS.find(c => !state.usedCombos.includes(c)) || ALL_COMBOS[0];
-      applyNewCombo(newCombo);
+
+      runSpinAnimation(
+        candidate => {
+          const [d, t] = candidate.split('||');
+          return t === currentTeam && d !== currentDecade && !state.usedCombos.includes(candidate);
+        },
+        { team: currentTeam }
+      );
     }
 
     function switchTeam() {
-      if (state.teamUsed || !state.currentCombo) return;
+      if (state.teamUsed || !state.currentCombo || state.spinning) return;
       state.teamUsed = true;
       const [currentDecade, currentTeam] = state.currentCombo.split('||');
-      const needed = getNeededPos();
-      let newCombo = null;
-      let tries = 0;
-      while (!newCombo && tries < 300) {
-        const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
-        const [d, t] = candidate.split('||');
-        if (d === currentDecade && t !== currentTeam && !state.usedCombos.includes(candidate)) {
-          const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
-          const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
-          if (hasFit) newCombo = candidate;
-        }
-        tries++;
-      }
-      if (!newCombo) {
-        for (let i = 0; i < 200; i++) {
-          const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
-          const [, t] = candidate.split('||');
-          if (t !== currentTeam && !state.usedCombos.includes(candidate)) {
-            const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
-            const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
-            if (hasFit) { newCombo = candidate; break; }
-          }
-        }
-      }
-      if (!newCombo) newCombo = ALL_COMBOS.find(c => !state.usedCombos.includes(c)) || ALL_COMBOS[0];
-      applyNewCombo(newCombo);
-    }
 
-    function applyNewCombo(combo) {
-      state.currentCombo = combo;
-      if (!state.usedCombos.includes(combo)) state.usedCombos.push(combo);
-      const [d, t] = combo.split('||');
-      const teamColor = TEAM_COLORS[t]?.primary || 'var(--accent2)';
-      document.getElementById('slotDisplay').innerHTML =
-        `<span class="slot-decade">${d}</span><span style="color:var(--muted)">·</span><span class="slot-team" style="color:${teamColor}">${t}</span>`;
-      updateSwitchBtns();
-      showPicker(combo);
+      runSpinAnimation(
+        candidate => {
+          const [d, t] = candidate.split('||');
+          return d === currentDecade && t !== currentTeam && !state.usedCombos.includes(candidate);
+        },
+        { decade: currentDecade }
+      );
     }
 
     // ---- SPIN ----
-    function spin() {
-      if (state.spinning) return;
-      const needed = getNeededPos();
-      if (needed.length === 0) return;
-
+    function runSpinAnimation(comboFilter, lock, onComplete) {
+      // lock: null (both spin), { decade: 'X' } (only team spins), or { team: 'X' } (only decade spins)
       state.spinning = true;
       document.getElementById('spinBtn').disabled = true;
       document.getElementById('pickerSection').classList.remove('active');
@@ -675,28 +625,53 @@
       const display = document.getElementById('slotDisplay');
       display.classList.add('spinning');
 
+      // Pre-extract candidate lists for the spinning axis only
+      const allDecades = [...new Set(ALL_COMBOS.map(c => c.split('||')[0]))];
+      const allTeams = [...new Set(ALL_COMBOS.map(c => c.split('||')[1]))];
+
       let ticks = 0;
       const maxTicks = 18;
       const interval = setInterval(() => {
-        const randCombo = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
-        const [dec, team] = randCombo.split('||');
+        let dec, team;
+        if (lock && lock.decade) {
+          dec = lock.decade;
+          team = allTeams[Math.floor(Math.random() * allTeams.length)];
+        } else if (lock && lock.team) {
+          team = lock.team;
+          dec = allDecades[Math.floor(Math.random() * allDecades.length)];
+        } else {
+          const randCombo = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+          [dec, team] = randCombo.split('||');
+        }
         const tickColor = TEAM_COLORS[team]?.primary || 'var(--accent2)';
         display.innerHTML = `<span class="slot-decade">${dec}</span><span style="color:var(--muted)">·</span><span class="slot-team" style="color:${tickColor}">${team}</span>`;
         ticks++;
         if (ticks >= maxTicks) {
           clearInterval(interval);
           display.classList.remove('spinning');
+
+          const needed = getNeededPos();
           let chosen = null;
           let tries = 0;
           while (!chosen && tries < 300) {
             const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
-            if (state.usedCombos.includes(candidate)) { tries++; continue; }
+            if (!comboFilter(candidate)) { tries++; continue; }
             const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
             const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
             if (hasFit) chosen = candidate;
             tries++;
           }
-          if (!chosen) chosen = ALL_COMBOS.find(c => !state.usedCombos.includes(c)) || ALL_COMBOS[0];
+          if (!chosen) {
+            for (let i = 0; i < 200; i++) {
+              const candidate = ALL_COMBOS[Math.floor(Math.random() * ALL_COMBOS.length)];
+              if (state.usedCombos.includes(candidate)) continue;
+              const players = COMBO_INDEX[candidate].filter(p => !state.draftedNames.includes(p.name));
+              const hasFit = players.some(p => getEligiblePositions(p.pos, needed).length > 0);
+              if (hasFit) { chosen = candidate; break; }
+            }
+          }
+          if (!chosen) chosen = ALL_COMBOS[0];
+
           state.currentCombo = chosen;
           if (!state.usedCombos.includes(chosen)) state.usedCombos.push(chosen);
           const [d, t] = chosen.split('||');
@@ -705,8 +680,17 @@
           state.spinning = false;
           updateSwitchBtns();
           showPicker(chosen);
+          if (onComplete) onComplete();
         }
       }, 70);
+    }
+
+    function spin() {
+      if (state.spinning) return;
+      const needed = getNeededPos();
+      if (needed.length === 0) return;
+
+      runSpinAnimation(candidate => !state.usedCombos.includes(candidate), null);
     }
 
     // ---- PICKER ----
