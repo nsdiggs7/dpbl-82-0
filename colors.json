@@ -4,7 +4,7 @@
         "Trojans": { "primary": "#008568", "secondary": "#8b8b8b" },
         "Zips": { "primary": "#e57028", "secondary": "#f7ac37" },
         "Huskies": { "primary": "#272341", "secondary": "#fac417" },
-        "Firebirds": { "primary": "#003e24", "secondary": "#e752cd" },
+        "Firebirds": { "primary": "#003e24", "secondary": "e57c2d" },
         "Badgers": { "primary": "#123d7c", "secondary": "#80fbff" },
         "Comets": { "primary": "#2f99d4", "secondary": "#00275d" },
         "Ducks": { "primary": "#eeb311", "secondary": "#00437b" },
