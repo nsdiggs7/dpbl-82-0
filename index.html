@@ -494,11 +494,11 @@
     };
 
     const POS_CEILINGS = {
-      PG: { PPG: 21.7, RPG: 7.5,  APG: 8.7, SPG: 2.5, BPG: 1.2 },
-      SG: { PPG: 21.2, RPG: 7.5,  APG: 7.9, SPG: 2.5, BPG: 1.2 },
-      SF: { PPG: 18.3, RPG: 10.8, APG: 4.8, SPG: 1.9, BPG: 1.6 },
-      PF: { PPG: 18.1, RPG: 11.0, APG: 5.0, SPG: 1.8, BPG: 1.6 },
-      C:  { PPG: 16.6, RPG: 11.8, APG: 4.8, SPG: 1.6, BPG: 1.6 },
+      PG: { PPG: 20.5, RPG: 7.0,  APG: 7.9, SPG: 2.3, BPG: 1.1 },
+      SG: { PPG: 20.1, RPG: 7.0,  APG: 7.2, SPG: 2.3, BPG: 1.1 },
+      SF: { PPG: 17.3, RPG: 10.1, APG: 4.3, SPG: 1.7, BPG: 1.5 },
+      PF: { PPG: 16.9, RPG: 10.4, APG: 4.4, SPG: 1.7, BPG: 1.5 },
+      C:  { PPG: 14.9, RPG: 11.0, APG: 4.4, SPG: 1.5, BPG: 1.5 },
     };
 
     // Ambiguous position mappings
@@ -909,7 +909,7 @@
 
       // Win curve: adjusted uses exponent 2.2
       // wins = 82 * (OVR / 110)^2.2
-      const winFrac = Math.pow(teamOVR / 110, 3);
+      const winFrac = Math.pow(teamOVR / 110, 2.5);
       //const noise = (Math.random() - 0.5) * 3;
       let wins = Math.round(82 * winFrac);
       wins = Math.min(82, wins);
