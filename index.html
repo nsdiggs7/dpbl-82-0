@@ -450,9 +450,9 @@
       </div>
 
       <!-- Simulate button -->
-      <button class="simulate-btn" id="simulateBtn" disabled onclick="simulate()">
+      <!-- <button class="simulate-btn" id="simulateBtn" disabled onclick="simulate()">
         ◈ Simulate Season ◈
-      </button>
+      </button> -->
     </div>
   </div>
 
@@ -593,7 +593,7 @@
       initRoster();
       updateRoster();
       updateSwitchBtns();
-      document.getElementById('simulateBtn').disabled = true;
+      //document.getElementById('simulateBtn').disabled = true;
       document.getElementById('spinBtn').disabled = false;
       document.getElementById('roundsLeft').textContent = '5 picks remaining';
       document.getElementById('spinLabel').textContent = '▸ Roll the Randomizer';
@@ -863,9 +863,10 @@
       const remaining = getNeededPos();
       if (remaining.length === 0) {
         document.getElementById('spinBtn').disabled = true;
-        document.getElementById('simulateBtn').disabled = false;
-        document.getElementById('roundsLeft').textContent = 'Roster complete — simulate!';
-        document.getElementById('spinLabel').textContent = '▸ All positions filled';
+        // document.getElementById('simulateBtn').disabled = false;
+        // document.getElementById('roundsLeft').textContent = 'Roster complete — simulate!';
+        // document.getElementById('spinLabel').textContent = '▸ All positions filled';
+        simulate();
       } else {
         document.getElementById('spinBtn').disabled = false;
         const r = remaining.length;
