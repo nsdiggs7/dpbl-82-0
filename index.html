@@ -594,7 +594,12 @@
       updateRoster();
       updateSwitchBtns();
       //document.getElementById('simulateBtn').disabled = true;
-      document.getElementById('spinBtn').disabled = false;
+      const btn = document.getElementById('spinBtn');
+      btn.disabled = false;
+      btn.textContent = 'Roll';
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.disabled = false;
       document.getElementById('roundsLeft').textContent = '5 picks remaining';
       document.getElementById('spinLabel').textContent = '▸ Roll the Randomizer';
       document.getElementById('slotDisplay').innerHTML =
@@ -766,6 +771,10 @@
     }
 
     function spin() {
+      if (getNeededPos().length === 0) {
+        simulate();
+        return;
+      }
       if (state.spinning) return;
       const needed = getNeededPos();
       if (needed.length === 0) return;
@@ -862,11 +871,13 @@
 
       const remaining = getNeededPos();
       if (remaining.length === 0) {
-        document.getElementById('spinBtn').disabled = true;
-        // document.getElementById('simulateBtn').disabled = false;
-        // document.getElementById('roundsLeft').textContent = 'Roster complete — simulate!';
-        // document.getElementById('spinLabel').textContent = '▸ All positions filled';
-        simulate();
+        const btn = document.getElementById('spinBtn');
+        btn.disabled = false;
+        btn.textContent = 'Simulate';
+        btn.style.background = 'linear-gradient(135deg, var(--accent2), #c43a10)';
+        btn.style.color = '#fff';
+        document.getElementById('roundsLeft').textContent = 'Press simulate!';
+        document.getElementById('spinLabel').textContent = 'All positions filled';
       } else {
         document.getElementById('spinBtn').disabled = false;
         const r = remaining.length;
